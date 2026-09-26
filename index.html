@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Quality Monitor</title>
+  <style>
+    /* ---- Claymorphism Theme ---- */
+    :root {
+      --bg: #e6e7ee; --clay: #e6e7ee; --text: #44476a;
+      --safe: #22c55e; --warn: #f59e0b; --danger: #ef4444;
+      --shadow-light: #ffffff; --shadow-dark: #c8c9d4;
+    }
+    
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: var(--bg); color: var(--text); 
+      margin: 0; padding: 20px; max-width: 600px; margin: auto;
+      min-height: 100vh;
+    }
+    
+    h1 { text-align: center; margin: 20px 0; font-size: 1.8rem; font-weight: 800; }
+    
+    .card {
+      background: var(--clay); padding: 30px; border-radius: 30px;
+      margin-bottom: 25px;
+      box-shadow: 9px 9px 18px var(--shadow-dark), -9px -9px 18px var(--shadow-light);
+    }
+    .card h2 { margin-top: 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center;}
+    
+    .status-badge { 
+      font-size: 0.8rem; padding: 8px 16px; border-radius: 15px; font-weight: bold;
+      background: var(--clay); color: var(--safe);
+      box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+    }
+    .status-badge.danger { color: var(--danger); animation: pulse 1.5s infinite; }
+    
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+    .gauge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; }
+    .gauge-container { display: flex; flex-direction: column; align-items: center; }
+    
+    .gauge {
+      width: 80px; height: 80px; border-radius: 50%; 
+      display: flex; align-items: center; justify-content: center; position: relative;
+      background: var(--clay);
+      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+      transition: box-shadow 0.3s ease;
+    }
+    .gauge::before {
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      background: conic-gradient(var(--safe) 0%, transparent 0%);
+      -webkit-mask: radial-gradient(farthest-side, transparent 65%, black 66%);
+              mask: radial-gradient(farthest-side, transparent 65%, black 66%);
+      transition: background 0.5s ease;
+    }
+    .gauge.danger::before { background: conic-gradient(var(--danger) 0%, transparent 0%); }
+    .gauge-value { font-size: 1.4rem; font-weight: bold; z-index: 1; }
+    .gauge-label { font-size: 0.8rem; margin-top: 8px; color: #6b6e8f; }
+
+    .clay-btn {
+      width: 100%; padding: 15px; margin-top: 20px; border: none; cursor: pointer;
+      background: var(--clay); color: var(--text); font-weight: bold; font-size: 1rem; border-radius: 15px;
+      box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+      transition: all 0.1s ease;
+    }
+    .clay-btn:active {
+      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+      transform: scale(0.98);
+    }
+    .clay-btn.danger-active { color: var(--danger); }
+
+    .city-aqi { font-size: 4rem; font-weight: 900; text-align: center; margin: 10px 0; transition: color 0.3s ease; }
+    .city-status { text-align: center; font-size: 1.2rem; font-weight: bold; }
+    .city-time { text-align: center; font-size: 0.8rem; color: #6b6e8f; margin-top: 10px; }
+
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--danger); color: white; padding: 15px 25px; border-radius: 15px; 
+      box-shadow: 6px 6px 12px var(--shadow-dark); opacity: 0; transition: all 0.4s ease;
+      max-width: 90%; text-align: center; font-weight: bold;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    
+    footer { text-align: center; font-size: 0.8rem; color: #6b6e8f; margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+  <h1>🌍 Air Monitor</h1>
+
+  <div class="card">
+    <h2>🏠 House Air <span id="house-status" class="status-badge">SAFE</span></h2>
+    <div class="gauge-grid">
+      <div class="gauge-container">
+        <div class="gauge" id="gauge-lpg"><div class="gauge-value" id="lpg-val">0</div></div>
+        <div class="gauge-label">LPG</div>
+      </div>
+      <div class="gauge-container">
+        <div class="gauge" id="gauge-smoke"><div class="gauge-value" id="smoke-val">0</div></div>
+        <div class="gauge-label">Smoke</div>
+      </div>
+      <div class="gauge-container">
+        <div class="gauge" id="gauge-co2"><div class="gauge-value" id="co2-val">0</div></div>
+        <div class="gauge-label">CO2</div>
+      </div>
+    </div>
+    
+    <button id="silence-btn" class="clay-btn">Silence Alarm Remotely</button>
+  </div>
+
+  <div class="card">
+    <h2>🌆 City Air</h2>
+    <div class="city-aqi" id="city-aqi">--</div>
+    <div class="city-status" id="city-status">Loading...</div>
+    <div class="city-time" id="city-time">--</div>
+  </div>
+
+  <footer>ESP32 + GitHub Pages + Claymorphism</footer>
+  
+  <div id="toast" class="toast">⚠️ DANGER: High Gas Levels!</div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+  
+  <script>
+    // --- 1. CONFIGURE HERE ---
+    const firebaseConfig = {
+      databaseURL: "https://YOUR-PROJECT-default-rtdb.firebaseio.com"
+    };
+    const AQICN_TOKEN = "YOUR_AQICN_API_TOKEN"; 
+    
+    // --- 2. INITIALIZE FIREBASE ---
+    firebase.initializeApp(firebaseConfig);
+    const dbRef = firebase.database().ref('/house');
+    const dbCommands = firebase.database().ref('/commands');
+
+    // --- 3. ANIMATION HELPER ---
+    function animateValue(element, start, end, duration) {
+      if (start === end) return;
+      const range = end - start;
+      let current = start;
+      const increment = end > start ? 1 : -1;
+      const stepTime = Math.max(Math.abs(Math.floor(duration / range)), 10);
+      const timer = setInterval(() => {
+        current += increment;
+        element.innerText = Math.abs(current);
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+          element.innerText = end;
+          clearInterval(timer);
+        }
+      }, stepTime);
+    }
+
+    function updateGaugeColor(gaugeId, value, dangerThreshold) {
+      const el = document.getElementById(gaugeId);
+      if (value > dangerThreshold) el.classList.add('danger');
+      else el.classList.remove('danger');
+    }
+
+    // --- 4. LISTEN TO HOUSE DATA IN REAL-TIME ---
+    dbRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const lpg = Math.round(data.lpg);
+      const co2 = Math.round(data.co2);
+      const smoke = Math.round(data.smoke);
+
+      animateValue(document.getElementById('lpg-val'), 0, lpg, 500);
+      animateValue(document.getElementById('co2-val'), 0, co2, 500);
+      animateValue(document.getElementById('smoke-val'), 0, smoke, 500);
+
+      updateGaugeColor('gauge-lpg', lpg, 600);
+      updateGaugeColor('gauge-co2', co2, 1500);
+      updateGaugeColor('gauge-smoke', smoke, 200);
+
+      const statusBadge = document.getElementById('house-status');
+      const toast = document.getElementById('toast');
+      const silenceBtn = document.getElementById('silence-btn');
+
+      if (data.danger) {
+        statusBadge.innerText = "DANGER!";
+        statusBadge.classList.add('danger');
+        silenceBtn.classList.add('danger-active');
+        toast.classList.add('show');
+      } else {
+        statusBadge.innerText = "SAFE";
+        statusBadge.classList.remove('danger');
+        silenceBtn.classList.remove('danger-active');
+        toast.classList.remove('show');
+      }
+    });
+
+    // --- 5. INTERACTIVE SILENCE BUTTON ---
+    document.getElementById('silence-btn').addEventListener('click', () => {
+      dbCommands.set({ silence_alarm: 1 });
+      alert("Command sent to silence the alarm!");
+    });
+
+    // --- 6. FETCH CITY AIR QUALITY (AQICN API) ---
+    function fetchCityAQI() {
+      fetch(`https://api.waqi.info/feed/here/?token=${AQICN_TOKEN}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'ok') {
+            const aqi = data.data.aqi;
+            document.getElementById('city-aqi').innerText = aqi;
+            document.getElementById('city-time').innerText = new Date(data.data.time.iso).toLocaleString();
+
+            let statusText = "", color = "";
+            if (aqi <= 50) { statusText = "Good"; color = "#22c55e"; }
+            else if (aqi <= 100) { statusText = "Moderate"; color = "#f59e0b"; }
+            else if (aqi <= 150) { statusText = "Unhealthy"; color = "#f97316"; }
+            else { statusText = "Hazardous"; color = "#ef4444"; }
+
+            document.getElementById('city-status').innerText = statusText;
+            document.getElementById('city-status').style.color = color;
+          } else {
+            document.getElementById('city-status').innerText = "Invalid API Token";
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    fetchCityAQI();
+    setInterval(fetchCityAQI, 600000);
+  </script>
+</body>
+</html>
