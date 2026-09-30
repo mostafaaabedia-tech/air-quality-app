@@ -84,7 +84,7 @@
   <header>
     <h1>🌍 Air Monitor</h1>
     <div class="creators">
-      Developed by: <span>hbrt</span> • <span>Mostafa Aabedi</span> • <span>Sebghatullah Haidari</span>
+      Developed by: <span>HBRT</span> • <span>Mostafa Aabedi</span> • <span>Sebghatullah Haidari</span>
     </div>
   </header>
 
@@ -130,8 +130,8 @@
     const firebaseConfig = {
       databaseURL: "https://airqualityproject-e49ae-default-rtdb.firebaseio.com"
     };
-    // PASTE YOUR EXACT AQICN API TOKEN HERE TO FIX THE CITY DATA
-    const AQICN_TOKEN = "b0782f2570dcae58851b723e5edec14671901a5"; 
+    // WEATHERAPI KEY INTEGRATED
+    const WEATHER_API_KEY = "a17ad58bf936472dbc751502263009"; 
     
     firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('/house');
@@ -182,34 +182,42 @@
       alert("Command sent to silence the alarm!");
     });
 
-    function fetchCityAQI() {
-      fetch(`https://api.waqi.info/feed/here/?token=${AQICN_TOKEN}`)
+    // --- FETCH CITY AIR QUALITY & WEATHER (WeatherAPI.com) ---
+    function fetchCityWeather() {
+      // "auto:ip" tells the API to automatically detect the user's city using their IP address
+      fetch(`https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=auto:ip&aqi=yes`)
         .then(response => response.json())
         .then(data => {
-          if (data.status === 'ok') {
-            const aqi = data.data.aqi;
-            document.getElementById('city-aqi').innerText = aqi;
-            document.getElementById('city-time').innerText = new Date(data.data.time.iso).toLocaleString();
+          if (data && !data.error) {
+            // Get Air Quality (PM2.5)
+            const pm25 = data.current.air_quality.pm2_5;
+            // Get Weather info
+            const temp = Math.round(data.current.temp_c);
+            const condition = data.current.condition.text;
+            const city = data.location.name;
+
+            document.getElementById('city-aqi').innerText = pm25.toFixed(1);
+            document.getElementById('city-time').innerText = city + " • " + condition + " • " + temp + "°C";
 
             let statusText = "", color = "";
-            if (aqi <= 50) { statusText = "Good"; color = "#22c55e"; }
-            else if (aqi <= 100) { statusText = "Moderate"; color = "#f59e0b"; }
-            else if (aqi <= 150) { statusText = "Unhealthy"; color = "#f97316"; }
+            if (pm25 <= 12) { statusText = "Good"; color = "#22c55e"; }
+            else if (pm25 <= 35) { statusText = "Moderate"; color = "#f59e0b"; }
+            else if (pm25 <= 55) { statusText = "Unhealthy"; color = "#f97316"; }
             else { statusText = "Hazardous"; color = "#ef4444"; }
 
             document.getElementById('city-status').innerText = statusText;
             document.getElementById('city-status').style.color = color;
             document.getElementById('city-aqi').style.color = color;
           } else {
-            document.getElementById('city-status').innerText = "Invalid API Token";
+            document.getElementById('city-status').innerText = "Invalid API Key";
             document.getElementById('city-status').style.color = "#64748b";
           }
         })
         .catch(err => console.error(err));
     }
 
-    fetchCityAQI();
-    setInterval(fetchCityAQI, 600000);
+    fetchCityWeather();
+    setInterval(fetchCityWeather, 600000); // Updates every 10 minutes
   </script>
 </body>
 </html>
