@@ -5,94 +5,94 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Air Quality Monitor</title>
   <style>
-    /* ---- Claymorphism Theme ---- */
     :root {
-      --bg: #e6e7ee; --clay: #e6e7ee; --text: #44476a;
+      --bg: #0f172a; --card: #1e293b; --text: #f1f5f9;
       --safe: #22c55e; --warn: #f59e0b; --danger: #ef4444;
-      --shadow-light: #ffffff; --shadow-dark: #c8c9d4;
+      --shadow: rgba(0,0,0,0.4); --border: rgba(255,255,255,0.05);
     }
     
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
     
     body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
       background: var(--bg); color: var(--text); 
-      margin: 0; padding: 20px; max-width: 600px; margin: auto;
+      margin: 0; padding: 20px; max-width: 500px; margin: auto;
       min-height: 100vh;
     }
     
-    h1 { text-align: center; margin: 20px 0; font-size: 1.8rem; font-weight: 800; }
+    header { text-align: center; margin: 25px 0 35px; }
+    h1 { font-size: 1.8rem; font-weight: 800; margin: 0 0 10px; background: linear-gradient(45deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .creators { font-size: 0.8rem; color: #64748b; letter-spacing: 0.5px; }
+    .creators span { color: #94a3b8; font-weight: 500; }
     
     .card {
-      background: var(--clay); padding: 30px; border-radius: 30px;
-      margin-bottom: 25px;
-      box-shadow: 9px 9px 18px var(--shadow-dark), -9px -9px 18px var(--shadow-light);
+      background: var(--card); padding: 25px; border-radius: 20px;
+      margin-bottom: 20px; border: 1px solid var(--border);
+      box-shadow: 0 10px 15px -3px var(--shadow), 0 4px 6px -2px var(--shadow);
     }
-    .card h2 { margin-top: 0; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center;}
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card-title { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 700; }
     
-    .status-badge { 
-      font-size: 0.8rem; padding: 8px 16px; border-radius: 15px; font-weight: bold;
-      background: var(--clay); color: var(--safe);
-      box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
-    }
-    .status-badge.danger { color: var(--danger); animation: pulse 1.5s infinite; }
+    .status-badge { padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.8rem; background: rgba(34,197,94,0.1); color: var(--safe); border: 1px solid rgba(34,197,94,0.2); }
+    .status-badge.danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); animation: pulse 1.5s infinite; }
     
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
     .gauge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; }
     .gauge-container { display: flex; flex-direction: column; align-items: center; }
     
     .gauge {
-      width: 80px; height: 80px; border-radius: 50%; 
+      width: 70px; height: 70px; border-radius: 50%; 
       display: flex; align-items: center; justify-content: center; position: relative;
-      background: var(--clay);
-      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
-      transition: box-shadow 0.3s ease;
+      background: var(--bg); margin-bottom: 8px;
+      box-shadow: inset 2px 2px 5px var(--shadow), inset -2px -2px 5px rgba(255,255,255,0.02);
     }
     .gauge::before {
-      content: ""; position: absolute; inset: 0; border-radius: 50%;
-      background: conic-gradient(var(--safe) 0%, transparent 0%);
-      -webkit-mask: radial-gradient(farthest-side, transparent 65%, black 66%);
-              mask: radial-gradient(farthest-side, transparent 65%, black 66%);
-      transition: background 0.5s ease;
+      content: ""; position: absolute; inset: -3px; border-radius: 50%;
+      background: conic-gradient(var(--safe) 0%, var(--bg) 0%);
+      transition: background 0.3s ease;
+      z-index: -1;
     }
-    .gauge.danger::before { background: conic-gradient(var(--danger) 0%, transparent 0%); }
-    .gauge-value { font-size: 1.4rem; font-weight: bold; z-index: 1; }
-    .gauge-label { font-size: 0.8rem; margin-top: 8px; color: #6b6e8f; }
+    .gauge.danger::before { background: conic-gradient(var(--danger) 0%, var(--bg) 0%); }
+    .gauge-value { font-size: 1.2rem; font-weight: 800; }
+    .gauge-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
 
     .clay-btn {
-      width: 100%; padding: 15px; margin-top: 20px; border: none; cursor: pointer;
-      background: var(--clay); color: var(--text); font-weight: bold; font-size: 1rem; border-radius: 15px;
-      box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
-      transition: all 0.1s ease;
+      width: 100%; padding: 14px; margin-top: 20px; border: none; cursor: pointer;
+      background: var(--bg); color: var(--text); font-weight: 600; font-size: 0.9rem; border-radius: 12px;
+      border: 1px solid var(--border); transition: all 0.2s ease;
     }
-    .clay-btn:active {
-      box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
-      transform: scale(0.98);
-    }
-    .clay-btn.danger-active { color: var(--danger); }
+    .clay-btn:active { transform: scale(0.98); background: #162032; }
+    .clay-btn.danger-active { color: var(--danger); border-color: rgba(239,68,68,0.3); }
 
-    .city-aqi { font-size: 4rem; font-weight: 900; text-align: center; margin: 10px 0; transition: color 0.3s ease; }
-    .city-status { text-align: center; font-size: 1.2rem; font-weight: bold; }
-    .city-time { text-align: center; font-size: 0.8rem; color: #6b6e8f; margin-top: 10px; }
+    .city-box { text-align: center; padding: 10px 0; }
+    .city-aqi { font-size: 3.5rem; font-weight: 900; margin: 0; line-height: 1; transition: color 0.3s ease; }
+    .city-status { font-size: 1.1rem; font-weight: 700; margin-top: 5px; }
+    .city-time { font-size: 0.7rem; color: #64748b; margin-top: 8px; }
 
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
-      background: var(--danger); color: white; padding: 15px 25px; border-radius: 15px; 
-      box-shadow: 6px 6px 12px var(--shadow-dark); opacity: 0; transition: all 0.4s ease;
-      max-width: 90%; text-align: center; font-weight: bold;
+      background: var(--danger); color: white; padding: 12px 24px; border-radius: 12px; 
+      opacity: 0; transition: all 0.4s ease; font-weight: 600; font-size: 0.9rem;
+      box-shadow: 0 10px 15px var(--shadow);
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-    
-    footer { text-align: center; font-size: 0.8rem; color: #6b6e8f; margin-top: 30px; }
   </style>
 </head>
 <body>
 
-  <h1>🌍 Air Monitor</h1>
+  <header>
+    <h1>🌍 Air Monitor</h1>
+    <div class="creators">
+      Developed by: <span>hbrt</span> • <span>Mostafa Aabedi</span> • <span>Sebghatullah Haidari</span>
+    </div>
+  </header>
 
   <div class="card">
-    <h2>🏠 House Air <span id="house-status" class="status-badge">SAFE</span></h2>
+    <div class="card-header">
+      <div class="card-title">🏠 House Air</div>
+      <div id="house-status" class="status-badge">SAFE</div>
+    </div>
     <div class="gauge-grid">
       <div class="gauge-container">
         <div class="gauge" id="gauge-lpg"><div class="gauge-value" id="lpg-val">0</div></div>
@@ -107,53 +107,35 @@
         <div class="gauge-label">CO2</div>
       </div>
     </div>
-    
     <button id="silence-btn" class="clay-btn">Silence Alarm Remotely</button>
   </div>
 
   <div class="card">
-    <h2>🌆 City Air</h2>
-    <div class="city-aqi" id="city-aqi">--</div>
-    <div class="city-status" id="city-status">Loading...</div>
-    <div class="city-time" id="city-time">--</div>
+    <div class="card-header">
+      <div class="card-title">🌆 City Air</div>
+    </div>
+    <div class="city-box">
+      <div class="city-aqi" id="city-aqi">--</div>
+      <div class="city-status" id="city-status">Loading...</div>
+      <div class="city-time" id="city-time">--</div>
+    </div>
   </div>
-
-  <footer>ESP32 + GitHub Pages + Claymorphism</footer>
   
   <div id="toast" class="toast">⚠️ DANGER: High Gas Levels!</div>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
   
   <script>
-    // --- 1. CONFIGURED WITH YOUR KEYS ---
     const firebaseConfig = {
       databaseURL: "https://airqualityproject-e49ae-default-rtdb.firebaseio.com"
     };
-    const AQICN_TOKEN = "b0782f2570daca58851b723e5edec14671901a5"; 
+    // PASTE YOUR EXACT AQICN API TOKEN HERE TO FIX THE CITY DATA
+    const AQICN_TOKEN = "YOUR_AQICN_API_TOKEN"; 
     
-    // --- 2. INITIALIZE FIREBASE ---
     firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('/house');
     const dbCommands = firebase.database().ref('/commands');
-
-    // --- 3. ANIMATION HELPER ---
-    function animateValue(element, start, end, duration) {
-      if (start === end) return;
-      const range = end - start;
-      let current = start;
-      const increment = end > start ? 1 : -1;
-      const stepTime = Math.max(Math.abs(Math.floor(duration / range)), 10);
-      const timer = setInterval(() => {
-        current += increment;
-        element.innerText = Math.abs(current);
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-          element.innerText = end;
-          clearInterval(timer);
-        }
-      }, stepTime);
-    }
 
     function updateGaugeColor(gaugeId, value, dangerThreshold) {
       const el = document.getElementById(gaugeId);
@@ -161,7 +143,7 @@
       else el.classList.remove('danger');
     }
 
-    // --- 4. LISTEN TO HOUSE DATA IN REAL-TIME ---
+    // Instant updates (No animation delay because we update every 1 second)
     dbRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
@@ -170,9 +152,9 @@
       const co2 = Math.round(data.co2);
       const smoke = Math.round(data.smoke);
 
-      animateValue(document.getElementById('lpg-val'), 0, lpg, 500);
-      animateValue(document.getElementById('co2-val'), 0, co2, 500);
-      animateValue(document.getElementById('smoke-val'), 0, smoke, 500);
+      document.getElementById('lpg-val').innerText = lpg;
+      document.getElementById('co2-val').innerText = co2;
+      document.getElementById('smoke-val').innerText = smoke;
 
       updateGaugeColor('gauge-lpg', lpg, 600);
       updateGaugeColor('gauge-co2', co2, 1500);
@@ -183,7 +165,7 @@
       const silenceBtn = document.getElementById('silence-btn');
 
       if (data.danger) {
-        statusBadge.innerText = "DANGER!";
+        statusBadge.innerText = "DANGER";
         statusBadge.classList.add('danger');
         silenceBtn.classList.add('danger-active');
         toast.classList.add('show');
@@ -195,13 +177,11 @@
       }
     });
 
-    // --- 5. INTERACTIVE SILENCE BUTTON ---
     document.getElementById('silence-btn').addEventListener('click', () => {
       dbCommands.set({ silence_alarm: 1 });
       alert("Command sent to silence the alarm!");
     });
 
-    // --- 6. FETCH CITY AIR QUALITY (AQICN API) ---
     function fetchCityAQI() {
       fetch(`https://api.waqi.info/feed/here/?token=${AQICN_TOKEN}`)
         .then(response => response.json())
@@ -219,8 +199,10 @@
 
             document.getElementById('city-status').innerText = statusText;
             document.getElementById('city-status').style.color = color;
+            document.getElementById('city-aqi').style.color = color;
           } else {
             document.getElementById('city-status').innerText = "Invalid API Token";
+            document.getElementById('city-status').style.color = "#64748b";
           }
         })
         .catch(err => console.error(err));
