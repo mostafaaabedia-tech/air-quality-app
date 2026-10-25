@@ -107,6 +107,7 @@
         <div class="gauge-label">CO2</div>
       </div>
     </div>
+    <div class="city-time" id="house-time" style="text-align:center">Waiting for the sensor...</div>
     <button id="silence-btn" class="clay-btn">Silence Alarm Remotely</button>
   </div>
 
@@ -143,10 +144,23 @@
       else el.classList.remove('danger');
     }
 
+    // Last time the ESP32 sent data (server time), so the page can tell when the device is offline
+    let lastUpdate = 0;
+    function showAge() {
+      const el = document.getElementById('house-time');
+      if (!lastUpdate) return;
+      const s = Math.max(0, Math.round((Date.now() - lastUpdate) / 1000));
+      const ago = s < 60 ? s + "s ago" : Math.round(s / 60) + " min ago";
+      if (s > 15) { el.innerText = "⚠️ Sensor offline, last update " + ago; el.style.color = "#f59e0b"; }
+      else { el.innerText = "Live, updated " + ago; el.style.color = "#64748b"; }
+    }
+    setInterval(showAge, 1000);
+
     // Instant updates (No animation delay because we update every 1 second)
     dbRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
+      if (data.updated) { lastUpdate = data.updated; showAge(); }
 
       const lpg = Math.round(data.lpg);
       const co2 = Math.round(data.co2);
@@ -158,21 +172,23 @@
 
       updateGaugeColor('gauge-lpg', lpg, 600);
       updateGaugeColor('gauge-co2', co2, 1500);
-      updateGaugeColor('gauge-smoke', smoke, 200);
+      updateGaugeColor('gauge-smoke', smoke, 300);
 
       const statusBadge = document.getElementById('house-status');
       const toast = document.getElementById('toast');
       const silenceBtn = document.getElementById('silence-btn');
 
       if (data.danger) {
-        statusBadge.innerText = "DANGER";
+        statusBadge.innerText = data.silenced ? "DANGER (SILENCED)" : "DANGER";
         statusBadge.classList.add('danger');
-        silenceBtn.classList.add('danger-active');
+        silenceBtn.classList.toggle('danger-active', !data.silenced);
+        silenceBtn.innerText = data.silenced ? "Alarm silenced" : "Silence Alarm Remotely";
         toast.classList.add('show');
       } else {
         statusBadge.innerText = "SAFE";
         statusBadge.classList.remove('danger');
         silenceBtn.classList.remove('danger-active');
+        silenceBtn.innerText = "Silence Alarm Remotely";
         toast.classList.remove('show');
       }
     });
