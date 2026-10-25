@@ -3,237 +3,399 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Air Quality Monitor</title>
+  <title>Air Monitor</title>
+  <meta name="theme-color" content="#d9e8f1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a; --card: #1e293b; --text: #f1f5f9;
-      --safe: #22c55e; --warn: #f59e0b; --danger: #ef4444;
-      --shadow: rgba(0,0,0,0.4); --border: rgba(255,255,255,0.05);
+      --sky: #d9e8f1;          /* clean air */
+      --sky-2: #f4f8fb;
+      --ink: #15232c;
+      --muted: #5c6d79;
+      --line: rgba(21, 35, 44, .12);
+      --card: rgba(255, 255, 255, .72);
+      --clean: #178a68;
+      --fair: #c97f06;
+      --danger: #d1322a;
+      --track: rgba(21, 35, 44, .09);
+      --accent: var(--clean);
     }
-    
-    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-    
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      background: var(--bg); color: var(--text); 
-      margin: 0; padding: 20px; max-width: 500px; margin: auto;
+    body.fair   { --sky: #efe2c8; --sky-2: #fbf6ec; --accent: var(--fair); }
+    body.danger { --sky: #e7cfcb; --sky-2: #f7ecea; --accent: var(--danger); }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; }
+    body {
+      font-family: "Bricolage Grotesque", system-ui, sans-serif;
+      font-optical-sizing: auto;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--sky) 0%, var(--sky-2) 70%);
+      background-color: var(--sky-2);
+      background-attachment: fixed;
       min-height: 100vh;
     }
-    
-    header { text-align: center; margin: 25px 0 35px; }
-    h1 { font-size: 1.8rem; font-weight: 800; margin: 0 0 10px; background: linear-gradient(45deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .creators { font-size: 0.8rem; color: #64748b; letter-spacing: 0.5px; }
-    .creators span { color: #94a3b8; font-weight: 500; }
-    
+    #air { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 18px 16px 40px; }
+
+    /* top bar */
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.01em; }
+    .brand svg { width: 30px; height: 30px; }
+    .live {
+      display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted);
+      background: var(--card); border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #9aa7b0; flex: none; }
+    .live.on .dot { background: var(--clean); animation: beat 2s infinite; }
+    .live.off .dot { background: var(--fair); }
+    @keyframes beat { 0% { box-shadow: 0 0 0 0 rgba(23, 138, 104, .5); } 70%, 100% { box-shadow: 0 0 0 8px rgba(23, 138, 104, 0); } }
+
+    /* hero */
+    .hero { padding: 54px 0 34px; max-width: 720px; }
+    .where { font-size: 16px; color: var(--muted); margin: 0 0 10px; }
+    .hero h1 {
+      margin: 0; font-size: clamp(40px, 9vw, 76px); line-height: .98; letter-spacing: -.035em;
+      font-weight: 800; font-variation-settings: "opsz" 96;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); transition: color .6s ease; }
+    .hero p { margin: 16px 0 0; font-size: 19px; line-height: 1.45; color: var(--muted); max-width: 58ch; }
+    body.danger .hero h1 em { animation: throb 1.2s ease-in-out infinite; }
+    @keyframes throb { 50% { opacity: .55; } }
+
+    /* cards */
+    .grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
     .card {
-      background: var(--card); padding: 25px; border-radius: 20px;
-      margin-bottom: 20px; border: 1px solid var(--border);
-      box-shadow: 0 10px 15px -3px var(--shadow), 0 4px 6px -2px var(--shadow);
+      background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 22px;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .card-title { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 700; }
-    
-    .status-badge { padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.8rem; background: rgba(34,197,94,0.1); color: var(--safe); border: 1px solid rgba(34,197,94,0.2); }
-    .status-badge.danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); animation: pulse 1.5s infinite; }
-    
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .card h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+    .card .sub { margin: 0; font-size: 15px; color: var(--muted); }
 
-    .gauge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center; }
-    .gauge-container { display: flex; flex-direction: column; align-items: center; }
-    
-    .gauge {
-      width: 70px; height: 70px; border-radius: 50%; 
-      display: flex; align-items: center; justify-content: center; position: relative;
-      background: var(--bg); margin-bottom: 8px;
-      box-shadow: inset 2px 2px 5px var(--shadow), inset -2px -2px 5px rgba(255,255,255,0.02);
+    /* gauges */
+    .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px 0 6px; }
+    .gauge { text-align: center; min-width: 0; }
+    .gauge svg { width: 100%; max-width: 150px; height: auto; display: block; margin: 0 auto; }
+    .g-track { fill: none; stroke: var(--track); stroke-width: 10; stroke-linecap: round; }
+    .g-fill { fill: none; stroke: var(--clean); stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray .6s ease, stroke .4s ease; }
+    .g-fill.fair { stroke: var(--fair); }
+    .g-fill.danger { stroke: var(--danger); }
+    .g-tick { stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; opacity: .55; }
+    .g-val { font-size: 27px; font-weight: 800; letter-spacing: -.02em; fill: var(--ink); font-variant-numeric: tabular-nums; }
+    .g-unit { font-size: 11px; fill: var(--muted); }
+    .g-name { font-weight: 700; font-size: 16px; margin-top: -6px; }
+    .g-note { font-size: 13px; color: var(--muted); }
+
+    .silence {
+      width: 100%; margin-top: 18px; padding: 15px 18px; border-radius: 16px; cursor: pointer;
+      font: 700 17px "Bricolage Grotesque", system-ui, sans-serif; letter-spacing: -.005em;
+      background: transparent; color: var(--muted); border: 1.5px solid var(--line);
+      transition: background .2s ease, color .2s ease, transform .1s ease;
     }
-    .gauge::before {
-      content: ""; position: absolute; inset: -3px; border-radius: 50%;
-      background: conic-gradient(var(--safe) 0%, var(--bg) 0%);
-      transition: background 0.3s ease;
-      z-index: -1;
-    }
-    .gauge.danger::before { background: conic-gradient(var(--danger) 0%, var(--bg) 0%); }
-    .gauge-value { font-size: 1.2rem; font-weight: 800; }
-    .gauge-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+    .silence:active { transform: scale(.985); }
+    .silence.armed { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .silence:disabled { cursor: default; }
+    .silence:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 
-    .clay-btn {
-      width: 100%; padding: 14px; margin-top: 20px; border: none; cursor: pointer;
-      background: var(--bg); color: var(--text); font-weight: 600; font-size: 0.9rem; border-radius: 12px;
-      border: 1px solid var(--border); transition: all 0.2s ease;
-    }
-    .clay-btn:active { transform: scale(0.98); background: #162032; }
-    .clay-btn.danger-active { color: var(--danger); border-color: rgba(239,68,68,0.3); }
+    /* city */
+    .pm { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 2px; }
+    .pm b { font-size: 64px; line-height: 1; letter-spacing: -.04em; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .pm span { color: var(--muted); font-size: 15px; }
+    .pm-word { font-size: 20px; font-weight: 700; }
+    .scale { position: relative; height: 10px; border-radius: 99px; margin: 18px 0 6px;
+             background: linear-gradient(90deg, #2bb58a 0 22%, #e4b23a 22% 50%, #ee7d32 50% 75%, #d1322a 75% 100%); }
+    .scale i { position: absolute; top: -5px; width: 4px; height: 20px; border-radius: 4px; background: var(--ink);
+               box-shadow: 0 0 0 3px rgba(255,255,255,.85); transform: translateX(-50%); transition: left .6s ease; left: 0; opacity: 0; }
+    .scale-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+    .weather { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; font-size: 16px; }
+    .weather .t { font-weight: 700; }
 
-    .city-box { text-align: center; padding: 10px 0; }
-    .city-aqi { font-size: 3.5rem; font-weight: 900; margin: 0; line-height: 1; transition: color 0.3s ease; }
-    .city-status { font-size: 1.1rem; font-weight: 700; margin-top: 5px; }
-    .city-time { font-size: 0.7rem; color: #64748b; margin-top: 8px; }
+    /* credits */
+    .credits { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .credits { grid-template-columns: 1fr; } }
+    .credits h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--muted); }
+    .people { display: flex; flex-wrap: wrap; gap: 10px; }
+    .person { display: flex; align-items: center; gap: 10px; padding: 7px 16px 7px 7px; border-radius: 999px;
+              background: rgba(255, 255, 255, .85); border: 1px solid var(--line); font-weight: 600; font-size: 16px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: #fff; flex: none; }
+    .foot { margin-top: 22px; text-align: center; font-size: 14px; color: var(--muted); }
 
+    /* toast */
     .toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
-      background: var(--danger); color: white; padding: 12px 24px; border-radius: 12px; 
-      opacity: 0; transition: all 0.4s ease; font-weight: 600; font-size: 0.9rem;
-      box-shadow: 0 10px 15px var(--shadow);
+      position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 120px); z-index: 5;
+      background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 14px; font-weight: 600; font-size: 15px;
+      transition: transform .35s ease; max-width: calc(100% - 32px); text-align: center;
     }
-    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.show { transform: translate(-50%, 0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
   </style>
 </head>
 <body>
+  <canvas id="air" aria-hidden="true"></canvas>
 
-  <header>
-    <h1>🌍 Air Monitor</h1>
-    <div class="creators">
-      Developed by: <span>HBRT</span> • <span>Mostafa Aabedi</span> • <span>Sebghatullah Haidari</span>
-    </div>
-  </header>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2.5"/>
+          <path d="M8 13h11a3 3 0 1 0-3-3M8 18h14a3 3 0 1 1-3 3M8 23h6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        Air Monitor
+      </div>
+      <div class="live" id="live"><span class="dot"></span><span id="live-text">Connecting</span></div>
+    </header>
 
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">🏠 House Air</div>
-      <div id="house-status" class="status-badge">SAFE</div>
+    <section class="hero" aria-live="polite">
+      <p class="where">At home, right now</p>
+      <h1 id="headline">Connecting to the <em>sensor</em>…</h1>
+      <p id="advice">Waiting for the first reading from the ESP32.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>House air</h2>
+        <p class="sub">Measured by the MQ-2 and MQ-135 sensors every second</p>
+        <div class="gauges">
+          <div class="gauge" id="g-lpg"></div>
+          <div class="gauge" id="g-smoke"></div>
+          <div class="gauge" id="g-co2"></div>
+        </div>
+        <button class="silence" id="silence-btn" disabled>No alarm right now</button>
+      </section>
+
+      <section class="card">
+        <h2>City air</h2>
+        <p class="sub" id="city-name">Finding your city…</p>
+        <div class="pm"><b id="pm-val">--</b><span>PM2.5 µg/m³</span></div>
+        <div class="pm-word" id="pm-word">Loading</div>
+        <div class="scale" aria-hidden="true"><i id="pm-mark"></i></div>
+        <div class="scale-labels"><span>Good</span><span>Moderate</span><span>Unhealthy</span><span>Hazardous</span></div>
+        <div class="weather"><span id="w-cond">--</span><span class="t" id="w-temp">--</span></div>
+      </section>
     </div>
-    <div class="gauge-grid">
-      <div class="gauge-container">
-        <div class="gauge" id="gauge-lpg"><div class="gauge-value" id="lpg-val">0</div></div>
-        <div class="gauge-label">LPG</div>
+
+    <section class="credits">
+      <div class="card">
+        <h3>Made by</h3>
+        <div class="people">
+          <div class="person"><span class="avatar" style="background:#178a68">MA</span>Mostafa Mesbah Aabedi</div>
+          <div class="person"><span class="avatar" style="background:#2d6fb3">SH</span>Sebghatullah Haidari</div>
+        </div>
       </div>
-      <div class="gauge-container">
-        <div class="gauge" id="gauge-smoke"><div class="gauge-value" id="smoke-val">0</div></div>
-        <div class="gauge-label">Smoke</div>
+      <div class="card">
+        <h3>Team</h3>
+        <div class="people">
+          <div class="person"><span class="avatar" style="background:#b8730a">MS</span>Mohammad Yosuf Sultani</div>
+          <div class="person"><span class="avatar" style="background:#8a4fb8">AA</span>Ahmad Taha Amini</div>
+        </div>
       </div>
-      <div class="gauge-container">
-        <div class="gauge" id="gauge-co2"><div class="gauge-value" id="co2-val">0</div></div>
-        <div class="gauge-label">CO2</div>
-      </div>
-    </div>
-    <div class="city-time" id="house-time" style="text-align:center">Waiting for the sensor...</div>
-    <button id="silence-btn" class="clay-btn">Silence Alarm Remotely</button>
+    </section>
+    <p class="foot">An HBRT project. ESP32, MQ-2, MQ-135 and Firebase.</p>
   </div>
 
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">🌆 City Air</div>
-    </div>
-    <div class="city-box">
-      <div class="city-aqi" id="city-aqi">--</div>
-      <div class="city-status" id="city-status">Loading...</div>
-      <div class="city-time" id="city-time">--</div>
-    </div>
-  </div>
-  
-  <div id="toast" class="toast">⚠️ DANGER: High Gas Levels!</div>
+  <div class="toast" id="toast" role="status"></div>
 
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-  
   <script>
     const firebaseConfig = {
       databaseURL: "https://airqualityproject-e49ae-default-rtdb.firebaseio.com"
     };
-    // WEATHERAPI KEY INTEGRATED
-    const WEATHER_API_KEY = "a17ad58bf936472dbc751502263009"; 
-    
+    const WEATHER_API_KEY = "a17ad58bf936472dbc751502263009";
+
+    // same limits as the ESP32
+    const SENSORS = {
+      lpg:   { el: "g-lpg",   name: "LPG",   unit: "ppm", min: 0,   max: 1000, danger: 600,  note: "cooking gas" },
+      smoke: { el: "g-smoke", name: "Smoke", unit: "ppm", min: 0,   max: 800,  danger: 300,  note: "fire, burning" },
+      co2:   { el: "g-co2",   name: "CO₂",   unit: "ppm", min: 400, max: 2000, danger: 1500, note: "stale air" }
+    };
+    const OFFLINE_AFTER = 15000;
+    const $ = (id) => document.getElementById(id);
+    let last = null, lastUpdate = 0, level = "wait";
+
+    /* ---------- gauges (drawn first so the page looks right even before data) ---------- */
+    const R = 46, C = 2 * Math.PI * R, ARC = 0.75 * C;      // 270° dial
+    function gaugeSVG(key) {
+      const s = SENSORS[key];
+      const tf = (s.danger - s.min) / (s.max - s.min);
+      const ang = (135 + 270 * tf) * Math.PI / 180;
+      const x1 = 60 + 38 * Math.cos(ang), y1 = 60 + 38 * Math.sin(ang);
+      const x2 = 60 + 56 * Math.cos(ang), y2 = 60 + 56 * Math.sin(ang);
+      $(s.el).innerHTML =
+        '<svg viewBox="0 0 120 112" role="img" aria-label="' + s.name + '">' +
+        '<circle class="g-track" cx="60" cy="60" r="' + R + '" stroke-dasharray="' + ARC + ' ' + C + '" transform="rotate(135 60 60)"/>' +
+        '<circle class="g-fill" id="' + key + '-arc" cx="60" cy="60" r="' + R + '" stroke-dasharray="0 ' + C + '" transform="rotate(135 60 60)"/>' +
+        '<line class="g-tick" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>' +
+        '<text class="g-val" id="' + key + '-val" x="60" y="64" text-anchor="middle">--</text>' +
+        '<text class="g-unit" x="60" y="80" text-anchor="middle">' + s.unit + '</text>' +
+        '</svg><div class="g-name">' + s.name + '</div><div class="g-note">' + s.note + '</div>';
+    }
+    Object.keys(SENSORS).forEach(gaugeSVG);
+
+    function setGauge(key, v) {
+      const s = SENSORS[key];
+      const f = Math.max(0, Math.min(1, (v - s.min) / (s.max - s.min)));
+      const arc = $(key + "-arc");
+      arc.setAttribute("stroke-dasharray", (ARC * f).toFixed(1) + " " + C);
+      const ratio = v / s.danger;
+      arc.setAttribute("class", "g-fill" + (ratio >= 1 ? " danger" : ratio >= 0.7 ? " fair" : ""));
+      $(key + "-val").textContent = Math.round(v);
+    }
+
+    /* ---------- page state ---------- */
+    function ratios(d) {
+      return { "LPG gas": d.lpg / SENSORS.lpg.danger, "smoke": d.smoke / SENSORS.smoke.danger, "CO₂": d.co2 / SENSORS.co2.danger };
+    }
+    function worstRatio(d) { return Math.max(...Object.values(ratios(d))); }
+    function worstName(d) { const r = ratios(d); return Object.keys(r).reduce((a, b) => (r[a] > r[b] ? a : b)); }
+
+    function render() {
+      if (!last) return;
+      const d = last;
+      const offline = lastUpdate && Date.now() - lastUpdate > OFFLINE_AFTER;
+      Object.keys(SENSORS).forEach((k) => setGauge(k, Number(d[k]) || 0));
+
+      const ratio = worstRatio(d);
+      level = d.danger ? "danger" : ratio >= 0.7 ? "fair" : "clean";
+      document.body.className = level === "clean" ? "" : level;
+
+      const h = $("headline"), a = $("advice"), btn = $("silence-btn");
+      if (level === "danger") {
+        h.innerHTML = "Dangerous air. <em>Get out now.</em>";
+        a.textContent = "The " + worstName(d) + " level is above the safe limit. Open the windows, don't light a fire or flip switches, and leave the house." +
+                        (d.silenced ? " The alarm was silenced from this page." : "");
+        if (!btn.dataset.sending) {
+          btn.disabled = !!d.silenced;
+          btn.className = "silence" + (d.silenced ? "" : " armed");
+          btn.textContent = d.silenced ? "Alarm silenced" : "Silence the alarm";
+        }
+      } else {
+        if (level === "fair") {
+          h.innerHTML = "The air is <em>getting worse</em>.";
+          a.textContent = "The " + worstName(d) + " level is rising. Open a window and check the kitchen.";
+        } else {
+          h.innerHTML = "The air at home is <em>clean</em>.";
+          a.textContent = "All three sensors are well below their limits.";
+        }
+        delete btn.dataset.sending;
+        btn.disabled = true; btn.className = "silence"; btn.textContent = "No alarm right now";
+      }
+      if (offline) a.textContent = "The sensor hasn't reported for a while, so these are its last readings. Check that the ESP32 is powered and on WiFi.";
+      document.title = (level === "danger" ? "⚠ DANGER | " : "") + "Air Monitor";
+    }
+
+    function renderLive() {
+      const live = $("live"), t = $("live-text");
+      if (!lastUpdate) { live.className = "live"; t.textContent = last ? "Live" : "Connecting"; return; }
+      const s = Math.max(0, Math.round((Date.now() - lastUpdate) / 1000));
+      const ago = s < 60 ? s + "s ago" : Math.round(s / 60) + " min ago";
+      if (Date.now() - lastUpdate > OFFLINE_AFTER) { live.className = "live off"; t.textContent = "Sensor offline, " + ago; }
+      else { live.className = "live on"; t.textContent = "Live, " + ago; }
+    }
+    setInterval(() => { renderLive(); render(); }, 1000);
+
+    let toastTimer;
+    function toast(msg) {
+      const t = $("toast"); t.textContent = msg; t.classList.add("show");
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+    }
+
+    /* ---------- living air background: more and darker particles when the air is worse ---------- */
+    (function air() {
+      const cv = $("air"), ctx = cv.getContext("2d");
+      const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let W, H, dpr, parts = [];
+      function size() {
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        W = cv.width = innerWidth * dpr; H = cv.height = innerHeight * dpr;
+      }
+      size(); addEventListener("resize", size);
+      function spawn(rand) {
+        return { x: Math.random() * W, y: rand ? Math.random() * H : H + 20 * dpr,
+                 r: (1.5 + Math.random() * 3.5) * dpr, s: (0.15 + Math.random() * 0.45) * dpr,
+                 w: Math.random() * Math.PI * 2, a: 0.25 + Math.random() * 0.5 };
+      }
+      for (let i = 0; i < 260; i++) parts.push(spawn(true));
+      function frame() {
+        const ratio = last ? Math.min(1.6, worstRatio(last)) : 0.2;
+        const count = Math.min(parts.length, Math.round(40 + ratio * 140));
+        const speed = level === "danger" ? 2.2 : level === "fair" ? 1.4 : 1;
+        const col = level === "danger" ? "120, 60, 55" : level === "fair" ? "170, 130, 60" : "255, 255, 255";
+        const big = level === "danger" || level === "fair" ? 1.6 : 1;
+        const alpha = level === "danger" || level === "fair" ? 0.35 : 0.8;
+        ctx.clearRect(0, 0, W, H);
+        for (let i = 0; i < count; i++) {
+          const p = parts[i];
+          if (!reduce) { p.y -= p.s * speed; p.w += 0.01; p.x += Math.sin(p.w) * 0.3 * dpr; }
+          if (p.y < -20 * dpr) Object.assign(p, spawn(false));
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r * big, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(" + col + "," + (p.a * alpha).toFixed(3) + ")";
+          ctx.fill();
+        }
+        if (!reduce) requestAnimationFrame(frame);
+      }
+      frame();
+      if (reduce) setInterval(frame, 2000);
+    })();
+
+    /* ---------- city air (WeatherAPI.com) ---------- */
+    function fetchCityWeather() {
+      fetch(`https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=auto:ip&aqi=yes`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data || data.error) { $("pm-word").textContent = "City air unavailable"; $("city-name").textContent = "Check the WeatherAPI key"; return; }
+          const pm = data.current.air_quality.pm2_5;
+          $("pm-val").textContent = pm.toFixed(1);
+          $("city-name").textContent = data.location.name + ", " + data.location.country;
+          $("w-cond").textContent = data.current.condition.text;
+          $("w-temp").textContent = Math.round(data.current.temp_c) + "°C";
+          let word, color, pos;
+          if (pm <= 12)      { word = "Good";      color = "#178a68"; pos = pm / 12 * 22; }
+          else if (pm <= 35) { word = "Moderate";  color = "#a8760a"; pos = 22 + (pm - 12) / 23 * 28; }
+          else if (pm <= 55) { word = "Unhealthy"; color = "#d9661f"; pos = 50 + (pm - 35) / 20 * 25; }
+          else               { word = "Hazardous"; color = "#d1322a"; pos = Math.min(98, 75 + (pm - 55) / 100 * 25); }
+          $("pm-word").textContent = word;
+          $("pm-word").style.color = color;
+          $("pm-mark").style.left = pos + "%";
+          $("pm-mark").style.opacity = 1;
+        })
+        .catch(() => { $("pm-word").textContent = "City air unavailable"; });
+    }
+    fetchCityWeather();
+    setInterval(fetchCityWeather, 600000);
+
+    /* ---------- Firebase ---------- */
     firebase.initializeApp(firebaseConfig);
     const dbRef = firebase.database().ref('/house');
     const dbCommands = firebase.database().ref('/commands');
 
-    function updateGaugeColor(gaugeId, value, dangerThreshold) {
-      const el = document.getElementById(gaugeId);
-      if (value > dangerThreshold) el.classList.add('danger');
-      else el.classList.remove('danger');
-    }
-
-    // Last time the ESP32 sent data (server time), so the page can tell when the device is offline
-    let lastUpdate = 0;
-    function showAge() {
-      const el = document.getElementById('house-time');
-      if (!lastUpdate) return;
-      const s = Math.max(0, Math.round((Date.now() - lastUpdate) / 1000));
-      const ago = s < 60 ? s + "s ago" : Math.round(s / 60) + " min ago";
-      if (s > 15) { el.innerText = "⚠️ Sensor offline, last update " + ago; el.style.color = "#f59e0b"; }
-      else { el.innerText = "Live, updated " + ago; el.style.color = "#64748b"; }
-    }
-    setInterval(showAge, 1000);
-
-    // Instant updates (No animation delay because we update every 1 second)
     dbRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
-      if (data.updated) { lastUpdate = data.updated; showAge(); }
-
-      const lpg = Math.round(data.lpg);
-      const co2 = Math.round(data.co2);
-      const smoke = Math.round(data.smoke);
-
-      document.getElementById('lpg-val').innerText = lpg;
-      document.getElementById('co2-val').innerText = co2;
-      document.getElementById('smoke-val').innerText = smoke;
-
-      updateGaugeColor('gauge-lpg', lpg, 600);
-      updateGaugeColor('gauge-co2', co2, 1500);
-      updateGaugeColor('gauge-smoke', smoke, 300);
-
-      const statusBadge = document.getElementById('house-status');
-      const toast = document.getElementById('toast');
-      const silenceBtn = document.getElementById('silence-btn');
-
-      if (data.danger) {
-        statusBadge.innerText = data.silenced ? "DANGER (SILENCED)" : "DANGER";
-        statusBadge.classList.add('danger');
-        silenceBtn.classList.toggle('danger-active', !data.silenced);
-        silenceBtn.innerText = data.silenced ? "Alarm silenced" : "Silence Alarm Remotely";
-        toast.classList.add('show');
-      } else {
-        statusBadge.innerText = "SAFE";
-        statusBadge.classList.remove('danger');
-        silenceBtn.classList.remove('danger-active');
-        silenceBtn.innerText = "Silence Alarm Remotely";
-        toast.classList.remove('show');
+      const wasDanger = last && last.danger;
+      last = data;
+      if (data.updated) lastUpdate = data.updated;
+      if (data.silenced) delete $("silence-btn").dataset.sending;
+      render(); renderLive();
+      if (data.danger && !wasDanger) {
+        toast("⚠ Danger: high gas level at home");
+        if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
       }
     });
 
-    document.getElementById('silence-btn').addEventListener('click', () => {
+    $("silence-btn").addEventListener('click', () => {
       dbCommands.set({ silence_alarm: 1 });
-      alert("Command sent to silence the alarm!");
+      const btn = $("silence-btn");
+      btn.dataset.sending = "1";
+      btn.disabled = true; btn.className = "silence"; btn.textContent = "Silencing…";
+      toast("Silence command sent to the alarm");
     });
-
-    // --- FETCH CITY AIR QUALITY & WEATHER (WeatherAPI.com) ---
-    function fetchCityWeather() {
-      // "auto:ip" tells the API to automatically detect the user's city using their IP address
-      fetch(`https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=auto:ip&aqi=yes`)
-        .then(response => response.json())
-        .then(data => {
-          if (data && !data.error) {
-            // Get Air Quality (PM2.5)
-            const pm25 = data.current.air_quality.pm2_5;
-            // Get Weather info
-            const temp = Math.round(data.current.temp_c);
-            const condition = data.current.condition.text;
-            const city = data.location.name;
-
-            document.getElementById('city-aqi').innerText = pm25.toFixed(1);
-            document.getElementById('city-time').innerText = city + " • " + condition + " • " + temp + "°C";
-
-            let statusText = "", color = "";
-            if (pm25 <= 12) { statusText = "Good"; color = "#22c55e"; }
-            else if (pm25 <= 35) { statusText = "Moderate"; color = "#f59e0b"; }
-            else if (pm25 <= 55) { statusText = "Unhealthy"; color = "#f97316"; }
-            else { statusText = "Hazardous"; color = "#ef4444"; }
-
-            document.getElementById('city-status').innerText = statusText;
-            document.getElementById('city-status').style.color = color;
-            document.getElementById('city-aqi').style.color = color;
-          } else {
-            document.getElementById('city-status').innerText = "Invalid API Key";
-            document.getElementById('city-status').style.color = "#64748b";
-          }
-        })
-        .catch(err => console.error(err));
-    }
-
-    fetchCityWeather();
-    setInterval(fetchCityWeather, 600000); // Updates every 10 minutes
   </script>
 </body>
 </html>
